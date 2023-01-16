@@ -2,7 +2,7 @@
 title: 'Building a Chord Ring with Rust and gRPC: Part 1'
 description: Step by step guide on how to implement the Chord protocol in Rust using gRPC
 tags: 'rust,tutorial,programming'
-cover_image: './images/cover.png'
+cover_image: ./images/cover.png
 canonical_url: null
 published: false
 id: 1331035
@@ -327,7 +327,7 @@ impl NodeService {
 }
 ```
 
-We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id`. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix that.
+We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id` in our finger table. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix that.
 
 We can add a `client` method to `Node` struct.
 
@@ -439,22 +439,23 @@ Everything should build again 🎉
 
 Next function we will implement is `join`. Let’s take a look at the paper to see the definition.
 
-```
-Figure 6 shows the pseudocode for joins and stabilization.
-When node n first starts, it calls n.join(n'), where n' is any known Chord node, or n.create() to create a new Chord network. The join() function asks n' to find the immediate successor of n. By itself, join() does not make the rest of the network aware of n.
-```
-
-```
-// join a Chord ring containing node n'.
-n.join(n')
-  predecessor = nil;
-  successor = n'.find_successor(n);
-
-// create a new Chord ring.
-n.create()
-  predecessor = nil;
-  successor = n;
-```
+> 
+> *Figure 6 shows the pseudocode for joins and stabilization.*
+> *When node n first starts, it calls n.join(n'), where n' is any known Chord node, or n.create() to create a new Chord network. The join() function asks n' to find the immediate successor of n. By itself, join() does not make the rest of the network aware of n.*
+> 
+> 
+> ```
+> // join a Chord ring containing node n'.
+> n.join(n')
+>   predecessor = nil;
+>   successor = n'.find_successor(n);
+> 
+> // create a new Chord ring.
+> n.create()
+>   predecessor = nil;
+>   successor = n;
+> ```
+> 
 
 We don’t need to implement `create` because we already set the `successor` to itself when creating a `NodeService`.
 
@@ -507,17 +508,18 @@ Another one is done.
 
 #### Stabilize
 
-> Every node runs stabilize() periodically to learn about newly joined nodes. Each time node n runs stabilize(), it asks its successor for the successor's predecessor p, and decides whether p should be n's successor instead. This would be the case if node p recently joined the system. In addition, stabilize() notifies node n's successor of n's existence, giving the successor the chance to change its predecessor to n. The successor does this only if it knows of no closer predecessor than n.
-
-```
-// called periodically. verifies n’s immediate
-// successor, and tells the successor about n.
-n.stabilize()
-  x = successor.predecessor;
-  if (x ∈ (n,successor))
-    successor = x;
-  successor.notify(n);
-```
+> *Every node runs stabilize() periodically to learn about newly joined nodes. Each time node n runs stabilize(), it asks its successor for the successor's predecessor p, and decides whether p should be n's successor instead. This would be the case if node p recently joined the system. In addition, stabilize() notifies node n's successor of n's existence, giving the successor the chance to change its predecessor to n. The successor does this only if it knows of no closer predecessor than n.*
+> 
+> ```
+> // called periodically. verifies n’s immediate
+> // successor, and tells the successor about n.
+> n.stabilize()
+>   x = successor.predecessor;
+>   if (x ∈ (n,successor))
+>     successor = x;
+>   successor.notify(n);
+> ```
+> 
 
 The `stabilize` method should run periodically, to update the node’s successor when a new node joins the ring. It does it by asking for a predecessor of it’s successor. When the returned node `x` is between node `n` and successor of `n` then the new successor of `n` is set to `x`. 
 
