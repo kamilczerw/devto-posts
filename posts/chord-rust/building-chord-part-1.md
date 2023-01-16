@@ -1,10 +1,11 @@
 ---
-title: "Building a Chord Ring with Rust and gRPC: Part 1"
+title: 'Building a Chord Ring with Rust and gRPC: Part 1'
 description: Step by step guide on how to implement the Chord protocol in Rust using gRPC
 tags: 'rust,tutorial,programming'
 cover_image: ''
 canonical_url: null
 published: false
+id: 1331035
 ---
 
 Welcome to my attempt at implementing the Chord protocol in Rust. Throughout this blog post, I will be documenting the steps I took to implement the Chord protocol using gRPC and explaining my thought process along the way.
@@ -460,9 +461,9 @@ Another one is done.
 
 ### Stabilize
 
-```
-Every node runs stabilize() periodically to learn about newly joined nodes. Each time node n runs stabilize(), it asks its successor for the successor's predecessor p, and decides whether p should be n's successor instead. This would be the case if node p recently joined the system. In addition, stabilize() notifies node n's successor of n's existence, giving the successor the chance to change its predecessor to n. The successor does this only if it knows of no closer predecessor than n.
-```
+> 
+> Every node runs stabilize() periodically to learn about newly joined nodes. Each time node n runs stabilize(), it asks its successor for the successor's predecessor p, and decides whether p should be n's successor instead. This would be the case if node p recently joined the system. In addition, stabilize() notifies node n's successor of n's existence, giving the successor the chance to change its predecessor to n. The successor does this only if it knows of no closer predecessor than n.
+> 
 
 ```
 // called periodically. verifies n’s immediate
