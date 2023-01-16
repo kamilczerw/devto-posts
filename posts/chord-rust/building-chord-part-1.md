@@ -2,7 +2,7 @@
 title: 'Building a Chord Ring with Rust and gRPC: Part 1'
 description: Step by step guide on how to implement the Chord protocol in Rust using gRPC
 tags: 'rust,tutorial,programming'
-cover_image: ''
+cover_image: './images/cover.png'
 canonical_url: null
 published: false
 id: 1331035
@@ -16,7 +16,7 @@ All the code can be found in the repo https://github.com/kamilczerw/chord. I mad
 
 Before we start coding, let’s get familiar with the protocol itself.
 
-# What is Chord
+## What is Chord
 
 The Chord protocol is designed to efficiently locate the node that stores a specific piece of data in a peer-to-peer application. It only performs one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord. That is a project for another time. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the state of each node growing logarithmically as the number of Chord nodes increases.
 
@@ -32,7 +32,7 @@ Imagine the network as a ring with nodes distributed along it. For demonstration
 
 Each of the nodes is responsible for maintaining a range of keys, starting with the node preceding it and including its own key. For example, in our demo network, node `N7` would be responsible for keys `2-7`. Node `N1` would be responsible for keys `59-63` and `0-1`. This is because the network has a ring shape, and the connection after the last key is the first key.
 
-## Lookup
+### Lookup
 
 To find the location of a specific identifier, each node uses a hash function to map the id to a position on the ring. It then uses its finger table, to determine which node is responsible for the id. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
 
@@ -58,7 +58,7 @@ Here is a visualization of the process of finding the node responsible for id `2
 
 ![lookup.png](./images/lookup.png)
 
-## Joining
+### Joining
 
 When a node joins the Chord ring, it first needs to find its place in the network and notify its immediate `successor` about itself. 
 >> Explain what `successor` and `predecessor` is << The successor updates it’s predecessor to the newly joined node, given it’s id is between current predecessor and itself. 
@@ -67,7 +67,7 @@ The `stabilize` job is responsible for ensuring that each node knows the correct
 
 In summary, the `stabilize` job is responsible for maintaining the correct relationships between nodes in the Chord ring and ensuring that the network is in sync.
 
-## Consistent hashing
+### Consistent hashing
 
 A consistent hash function assigns each node and key an `m`-bit identifier using a hash function. The original paper uses `SHA-1`, but it is important to note that this hash function is not recommended for use in new systems due to known weaknesses. Instead, there are other more secure hash functions that are recommended for use, such as `SHA-256` or `BLAKE2`. The node's identifier is chosen by hashing its IP address, while a key identifier is produced by hashing the key.
 
@@ -77,11 +77,11 @@ The keys are assigned to nodes by ordering the identifiers on an identifier circ
 
 In practice, consistent hashing is a simple yet effective technique for data distribution in distributed systems. It's easy to implement and it provides a good balance between the number of keys that need to be remapped when a node is added or removed, and the number of keys that can be mapped to the same node.
 
-# Implementation
+## Implementation
 
 Enough with the theory, let’s get our hands dirty with some coding. The first thing we need is to set up the project. I use cargo workspaces to split my projects into smaller modules. It is a great way to keep the project organized.
 
-## Project setup
+### Project setup
 
 We will use the following structure for our project:
 
@@ -121,7 +121,7 @@ cargo new libs/chord --lib
 cargo new libs/grpc --lib
 ```
 
-## Chord module
+### Chord module
 
 As mentioned earlier, this module will contain all the code specific for the Chord protocol. 
 
@@ -206,7 +206,7 @@ If we try to build the project now we will get an error. That’s because we use
 Go ahead and add the dependency to `libs/chord/Cargo.toml`
 
 ```toml
-# libs/chord/Cargo.toml
+## libs/chord/Cargo.toml
 [dependencies]
 seahash = "4.1.0"
 ```
@@ -238,7 +238,7 @@ impl NodeService {
 }
 ```
 
-### Find successor
+#### Find successor
 
 First function we will implement based on the spec is `find successor`. It is the entry point for key lookup in the ring. For a given key it returns a node which is responsible for that key. Such node is called successor of the key. Find successor was covered in the [lookup chapter](#lookup).
 
@@ -267,7 +267,7 @@ Let’s break this function down.
 - If the `id` is between `n` (exclusive) and `successor` (inclusive), return `successor`
 - Otherwise get a node from the finger table, with highest `id` which is lower than the `id` we are looking for. This node is called `closest preceding node`, and we call `find_successor` on it with the `id` we are looking for. That node will repeat the same process until it finds the successor of the `id`.
 
-We need to create a function which will check if an id is between 2 nodes, we can add it to `Node` struct.
+We need to create a function which will check if an `id` is between 2 nodes on the ring, we can add it to `Node` struct.
 
 ```rust
 impl Node {
@@ -283,7 +283,7 @@ impl Node {
 }
 ```
 
-We also need to implement `closest_preceding_node` function. It will return the node from the finger table which is the most immediate predecessor of the id.
+We also need to implement `closest_preceding_node` function. It will return the node from the finger table which is the most immediate `predecessor` of the `id`.
 
 ```rust
 impl NodeService {
@@ -315,15 +315,24 @@ impl NodeService {
 		    if Node::is_between_on_ring(id, self.id, self.store.successor.id) {
 		        Ok(self.store.successor.clone())
 		    } else {
-		        let client = self.closest_preceding_node(id).client();
-		        client.find_successor(id).map_err(|e| e.into())
+		        let node = self.closest_preceding_node(id);
+                // Wait a secode, how do we call the node to find the successor?
 		    }
 		}
-		
-		fn closest_preceding_node(&self, _id: u64) -> Node {
-		    self.store.successor.clone()
-		}
 }
+```
+
+We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id`. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix that.
+
+
+
+>> TODO: Move this somewhere else
+
+```rust
+let client = node.client();
+let successor = client.find_successor(id)?;
+
+Ok(successor)
 ```
 
 Trying to build the project will result in some errors.
@@ -343,7 +352,7 @@ help: consider giving `client` an explicit type
    |                       +++
 ```
 
-We need to tell the compiler what is the type of client. We could solve it by doing something like `let client: Box<dyn Client> = //...` , but we don’t want to have a dynamic client, because we will use the same implementation of `Client` in the entire application. To do so, we need to use generic type.
+The compiler doesn't know what type `client` variable should be.  We could solve it by doing something like `let client: Box<dyn Client> = //...` , but we don’t want to have a dynamic client, because we will use the same implementation of `Client` in the entire application. To do so, we need to use generic type.
 
 Let’s change `NodeService` to so it takes generic type for client
 
@@ -389,7 +398,7 @@ pub struct NodeService<C: Client> {
 
 Everything should build again 🎉
 
-### Join
+#### Join
 
 Next function we will implement is `join`. Let’s take a look at the paper to see the definition.
 
@@ -432,7 +441,7 @@ impl NodeService {
 
 That one was quite simple.
 
-### Notify
+#### Notify
 
 So far so good, this function should also be pretty simple to implement. 
 
@@ -459,11 +468,9 @@ impl NodeService {
 
 Another one is done.
 
-### Stabilize
+#### Stabilize
 
-> 
 > Every node runs stabilize() periodically to learn about newly joined nodes. Each time node n runs stabilize(), it asks its successor for the successor's predecessor p, and decides whether p should be n's successor instead. This would be the case if node p recently joined the system. In addition, stabilize() notifies node n's successor of n's existence, giving the successor the chance to change its predecessor to n. The successor does this only if it knows of no closer predecessor than n.
-> 
 
 ```
 // called periodically. verifies n’s immediate
@@ -515,7 +522,7 @@ impl NodeService {
 }
 ```
 
-### Check predecessor
+#### Check predecessor
 
 Another task which has to be run periodically is `check_predecessor`.
 
@@ -543,15 +550,15 @@ impl NodeService {
 }
 ```
 
-# Conclusion
+## Conclusion
 
 This blog post has become a bit bigger than what I anticipated. In the next post we will go through the RPC implementation, which will finally let us run the code. I tried to cover all the code with tests, but I decided not to include them in this post. You can take a look at the repo and see the tests. [https://github.com/kamilczerw/chord/tree/chord](https://github.com/kamilczerw/chord/tree/chord)
 
 If you find this article interesting, or have any comments on how it could be improved, I would love to hear it. Feel free to open an issue in the [repo](https://github.com/kamilczerw/chord/issues/new). You can also reach me on matrix [@kamil:tamto.dev](https://matrix.to/#/@kamil:tamto.dev).
 
-# TODO:
 
- 
+
+## TODO:
 
 - [ ]  Instead of adding `// path/to/file.rs` you should use `caption` on each of the code blocks
 - [ ]  finish the chord chapter
