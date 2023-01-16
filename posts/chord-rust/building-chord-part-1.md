@@ -162,7 +162,7 @@ impl NodeStore {
         }
     }
 
-		pub(crate) fn successor(&self) -> &Node {
+    pub(crate) fn successor(&self) -> &Node {
         &self.finger_table[0].node
     }
 }
@@ -391,11 +391,11 @@ Let’s change `NodeService` to be generic over `C: Client`.
 
 ```rust
 pub struct NodeService<C: Client> {
-		// ...
+    // ...
 }
 
 impl<C: Client> NodeService<C> {
-		// ...
+    // ...
 }
 ```
 
@@ -459,9 +459,9 @@ Here is the rust implementation of `join` function
 
 ```rust
 impl NodeService {
-		// ...
+    // ...
 
-		pub fn join(&mut self, node: Node) -> Result<(), error::ServiceError> {
+    pub fn join(&mut self, node: Node) -> Result<(), error::ServiceError> {
         let client: C = node.client();
         let successor = client.find_successor(self.id)?;
         self.store.successor = successor;
@@ -488,9 +488,9 @@ Our node `N16` receives a notify request from `N10`, it might be `N16`'s new pre
 
 ```rust
 impl NodeService {
-		// ...
+    // ...
 
-		pub fn notify(&mut self, node: Node) {
+    pub fn notify(&mut self, node: Node) {
         if self.store.predecessor.is_none() || Node::is_between_on_ring(node.id.clone(), self.node.predecessor.as_ref().unwrap().id, self.node.id) {
             self.store.predecessor = Some(node);
         }
@@ -535,9 +535,9 @@ Here is the Rust implementation of `stabilize` method
 
 ```rust
 impl NodeService {
-		// ...
+    // ...
 
-		pub fn stabilize(&mut self) -> Result<(), error::ServiceError> {
+    pub fn stabilize(&mut self) -> Result<(), error::ServiceError> {
         let client: C = self.store.successor.client();
         let result = client.predecessor();
         if let Ok(Some(x)) = result {
@@ -569,9 +569,9 @@ Each node needs to ping its predecessor to see if it is still up. If not the pre
 
 ```rust
 impl NodeService {
-		// ...
+    // ...
 
-		pub fn check_predecessor(&mut self) {
+    pub fn check_predecessor(&mut self) {
         if let Some(predecessor) = &self.store.predecessor {
             let client: C = predecessor.client();
             if let Err(ClientError::ConnectionFailed(_)) = client.ping() {
