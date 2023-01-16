@@ -40,7 +40,7 @@ To find the location of a specific identifier, each node uses a hash function to
 
 Here is the finger tables for node `N40` from our example network:
 
-![fingers.png](Building%20a%20Chord%20Ring%20with%20Rust%20and%20gRPC%20A%20Step-by%20769dc4b4402748ddaf36f751b721c633/fingers.png)
+![fingers.png](./images/fingers.png)
 
 | k | finger id | node |
 | --- | --- | --- |
@@ -55,7 +55,7 @@ Here is the finger tables for node `N40` from our example network:
 
 Here is a visualization of the process of finding the node responsible for id `20` in our example ring, using a lookup from node `N40`:
 
-![lookup.png](Building%20a%20Chord%20Ring%20with%20Rust%20and%20gRPC%20A%20Step-by%20769dc4b4402748ddaf36f751b721c633/lookup.png)
+![lookup.png](./images/lookup.png)
 
 ## Joining
 
