@@ -36,7 +36,10 @@ Each of the nodes is responsible for maintaining a range of keys, starting with 
 
 To find the location of a specific identifier, each node uses a hash function to map the id to a position on the ring. It then uses its finger table, to determine which node is responsible for the id. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
 
-- Identifier, calculated with the formula $finger\_id = (n+2^{k-1}) \mod {2^m}$
+- Identifier, calculated with the formula 
+{% katex inline %}
+ (n+2^{k-1}) \mod {2^m}
+{% endkatex %}
 - Node communication information, which includes IP address and port
 
 Here is the finger tables for node `N40` from our example network:
@@ -73,7 +76,9 @@ A consistent hash function assigns each node and key an `m`-bit identifier using
 
 This method ensures that the probability of two nodes or keys hashing to the same identifier is negligible, making it an efficient way to distribute data across a network.
 
-The keys are assigned to nodes by ordering the identifiers on an identifier circle modulo $2^m$. The key, `k`, is assigned to the first node whose identifier is equal to or follows (the identifier of) `k` in the identifier space. This node is called the successor node of key `k`, denoted by `successor(k)`.
+The keys are assigned to nodes by ordering the identifiers on an identifier circle modulo {% katex inline %}
+ 2^m
+{% endkatex %}. The key, `k`, is assigned to the first node whose identifier is equal to or follows (the identifier of) `k` in the identifier space. This node is called the successor node of key `k`, denoted by `successor(k)`.
 
 In practice, consistent hashing is a simple yet effective technique for data distribution in distributed systems. It's easy to implement and it provides a good balance between the number of keys that need to be remapped when a node is added or removed, and the number of keys that can be mapped to the same node.
 
@@ -592,9 +597,6 @@ If you find this article interesting, or have any comments on how it could be im
 
 ## TODO:
 
-- [ ]  Instead of adding `// path/to/file.rs` you should use `caption` on each of the code blocks
-- [ ]  finish the chord chapter
-- [ ]  Consistent hashing
 - [ ]  fix all the >> and <<
 - [ ]  Read it again
 - [ ]  read it again
