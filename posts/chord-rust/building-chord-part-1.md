@@ -309,55 +309,87 @@ Now we can implement `find_successor` method.
 
 ```rust
 impl NodeService {
-		// ...
+    // ...
 
-		pub fn find_successor(&self, id: u64) -> Result<Node, error::ServiceError> {
-		    if Node::is_between_on_ring(id, self.id, self.store.successor.id) {
-		        Ok(self.store.successor.clone())
-		    } else {
-		        let node = self.closest_preceding_node(id);
-                // Wait a secode, how do we call the node to find the successor?
-		    }
-		}
+    pub fn find_successor(&self, id: u64) -> Result<Node, error::ServiceError> {
+        if Node::is_between_on_ring(id, self.id, self.store.successor.id) {
+            Ok(self.store.successor.clone())
+        } else {
+            let node = self.closest_preceding_node(id);
+            // 🤔 Wait a secode, how do we call the node to find the successor?
+        }
+    }
 }
 ```
 
 We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id`. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix that.
 
-
-
->> TODO: Move this somewhere else
+We can add a `client` method to `Node` struct.
 
 ```rust
-let client = node.client();
-let successor = client.find_successor(id)?;
+impl Node {
+    // ...
 
-Ok(successor)
+    pub fn client<C: Client>(&self) -> C {
+        C::init(self.addr)
+    }
+}
 ```
 
-Trying to build the project will result in some errors.
+We don't know what type of client we will use, so we use a generic type `C` which implements `Client` trait and let the implementer decide what type of client it will be.
+
+Now we can get the client from the node and call `find_successor` on it.
+
+```rust
+impl NodeService {
+    // ...
+
+    pub fn find_successor(&self, id: u64) -> Result<Node, error::ServiceError> {
+        if Node::is_between_on_ring(id, self.id, self.store.successor.id) {
+            Ok(self.store.successor.clone())
+        } else {
+            let client = self.closest_preceding_node(id).client();
+            let successor = client.find_successor(id)?;
+
+            Ok(successor)
+        }
+    }
+}
+```
+
+Mutch better. Let's try to build the project now.
+
+```bash
+cargo build
+
+```
+
+Another error 😠
 
 ```
 error[E0282]: type annotations needed
-  --> libs/chord/src/service/mod.rs:31:17
-   |
-31 |             let client = self.closest_preceding_node(id).client();
-   |                 ^^^^^^
-32 |             let successor = client.find_successor(id)?;
-   |                             ------ type must be known at this point
-   |
+   --> libs/chord/src/service/mod.rs:121:17
+    |
+121 |             let client = predecessor.client();
+    |                 ^^^^^^
+122 |             if let Err(ClientError::ConnectionFailed(_)) = client.ping() {
+    |                                                            ------ type must be known at this point
+    |
 help: consider giving `client` an explicit type
-   |
-31 |             let client: _ = self.closest_preceding_node(id).client();
-   |                       +++
+    |
+121 |             let client: _ = predecessor.client();
+    |                       +++
+
+For more information about this error, try `rustc --explain E0282`.
+error: could not compile `chord-rs` due to previous error
 ```
 
-The compiler doesn't know what type `client` variable should be.  We could solve it by doing something like `let client: Box<dyn Client> = //...` , but we don’t want to have a dynamic client, because we will use the same implementation of `Client` in the entire application. To do so, we need to use generic type.
 
-Let’s change `NodeService` to so it takes generic type for client
+The compiler doesn't know what type `client` variable should be. We can fix it by doing something like `let client: Box<dyn Client> = //...` , but we don’t want to have a dynamic client, because we will use the same implementation of `Client` in the entire application. There is a better way. We can add a generic type to `NodeService`.
+
+Let’s change `NodeService` to be generic over `C: Client`.
 
 ```rust
-// libs/chord/service/mod.rs
 pub struct NodeService<C: Client> {
 		// ...
 }
@@ -385,9 +417,9 @@ error[E0392]: parameter `C` is never used
   = help: consider removing `C`, referring to it in a field, or using a marker such as `PhantomData`
 ```
 
-Another error 😱. 
+😡 Why is it failing? We clearly use `C` in our code. 
 
-Why is it failing? We clearly use `C` in our code. If you look closer at the error, you will see that the `C` type is not used in the `struct`. To solve it, we can use `std::marker::PhantomData`. The `struct` should look like this:
+If you look closer at the error, you will see that the `C` type is not used in the `struct`. To fix it, we need to add `std::marker::PhantomData`, it tells the compiler that your type acts as it stores a value of type `C`, even though it doesn’t really. The `struct` should look like this:
 
 ```rust
 pub struct NodeService<C: Client> {
