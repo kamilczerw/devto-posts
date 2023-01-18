@@ -459,7 +459,9 @@ Next function we will implement is `join`. Let’s take a look at the paper to s
 
 We don’t need to implement `create` because we already set the `successor` to itself when creating a `NodeService`.
 
-The `join` method calls the node `n'` to find a successor of id `n`. In another words, let’s say we have a ring with nodes `[N1, N8, N16]`, and new node with id `10` wants to join the ring. The node `N10` knows about `N1`, so it calls `N1.find_successor(N10)`. It gets back `N16`, and this is the node which should be set as a successor of node `N10`. 
+The `join` method calls the node `n'` to find a successor of id `n`. To explain this, we can use our example from above. 
+
+There is a node with id `N10` and it wants to join the ring. The node `N10` knows about `N1`, so it calls `N1.find_successor(N10)`. Node `N1` responds with `N18`, so `N18` should be the node which is the successor of node `N10`.
 
 Here is the rust implementation of `join` function
 
@@ -490,8 +492,9 @@ n.notify(n')
     predecessor = n';
 ```
 
-Our node `N16` receives a notify request from `N10`, it might be `N16`'s new predecessor. Node `N16` has to check if `N10` is between its own predecessor (`N8`) and itself. If no other node joined in the meantime the node `N10` will be set as a predecessor of node `N16`.
+Our node `N18` receives a notify request from `N10`, that it might be `N18`'s new predecessor. Node `N18` has to check if `N10` is between its own predecessor (`N7`) and itself. If no other node joined in the meantime the node `N10` will be set as a predecessor of node `N18`.
 
+>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ```rust
 impl NodeService {
     // ...
