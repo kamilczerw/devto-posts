@@ -564,6 +564,24 @@ impl NodeService {
 }
 ```
 
+#### Fix fingers
+
+> *Each node periodically calls fix_fingers to make sure its finger table entries are correct; this is how new nodes initialize their finger tables, and it is how existing nodes incorporate new nodes into their finger tables*
+>
+> ```
+> // called periodically. refreshes finger table entries.
+> // next stores the index of the next finger to fix.
+> n.fix_fingers()
+>   next = next + 1;
+>   if (next > m)
+>       next = 1;
+>   finger[next] = find_successor(n + 2^next−1);
+> ```
+
+The `fix_fingers` method is called periodically to update the finger table. It ensures that all the finger table entries are correct. It is also used to initialize the finger table of a newly joined node.
+
+The `next` variable is used to keep track of the next finger to fix. It is incremented after each call to `fix_fingers`. When the `next` variable is greater than the number of fingers in the finger table it is reset to 1. 
+
 #### Check predecessor
 
 Another task which has to be run periodically is `check_predecessor`.
@@ -583,7 +601,7 @@ impl NodeService {
 
     pub fn check_predecessor(&mut self) {
         if let Some(predecessor) = self.store.predecessor() {
-            let client = predecessor.client();
+            let client: C = predecessor.client();
             if let Err(ClientError::ConnectionFailed(_)) = client.ping() {
                 self.store.unset_predecessor();
             };
