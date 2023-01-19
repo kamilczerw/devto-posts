@@ -494,14 +494,14 @@ n.notify(n')
 
 Our node `N18` receives a notify request from `N10`, that it might be `N18`'s new predecessor. Node `N18` has to check if `N10` is between its own predecessor (`N7`) and itself. If no other node joined in the meantime the node `N10` will be set as a predecessor of node `N18`.
 
->>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 ```rust
 impl NodeService {
     // ...
 
     pub fn notify(&mut self, node: Node) {
-        if self.store.predecessor.is_none() || Node::is_between_on_ring(node.id.clone(), self.node.predecessor.as_ref().unwrap().id, self.node.id) {
-            self.store.predecessor = Some(node);
+        let predecessor = self.store.predecessor();
+        if predecessor.is_none() || Node::is_between_on_ring(node.id.clone(), predecessor.unwrap().id, self.id) {
+            self.store.set_predecessor(node);
         }
     }
 }
@@ -524,22 +524,22 @@ Another one is done.
 > ```
 > 
 
-The `stabilize` method should run periodically, to update the node’s successor when a new node joins the ring. It does it by asking for a predecessor of it’s successor. When the returned node `x` is between node `n` and successor of `n` then the new successor of `n` is set to `x`. 
+The `stabilize` method should run periodically, to update the node’s successor when a new node joins the ring. It does it by asking for a predecessor of it’s successor. When the returned node (we will call it `x`) is between node `n` and successor of `n` then the new successor of `n` is set to `x`. 
 
-We can translate it to our ids we used in the previous functions. Here are the steps taken when the node `N10` joins the ring:
+We can explain it on our example ring. Here are the steps taken when the node `N10` joins the ring:
 
-1. Node `N10` sets `N16` as it’s successor
+1. Node `N10` sets `N18` as it’s successor (it's done by `join` method)
 2. Node `N10` runs `stabilize`
-    1. Node `N10` calls node `N16` for it’s predecessor
-    2. `N8` is returned, so the successor is not changed. 
-3. Node `N10` calls `notify` on node `N16`.
-4. Node `N16` checks if `N10` is between `N8` and `N16`
-5. Node `N16` sets `N10` as it’s new predecessor
-6. Node `N8` runs `stabilize` 
-    1. Node `N8` calls node `N16` for it’s predecessor
+    1. Node `N10` calls node `N18` for it’s predecessor
+    2. `N7` is returned, so the successor is not changed. 
+3. Node `N10` calls `notify` on node `N18`.
+4. Node `N18` checks if `N10` is between `N8` and `N18`
+5. Node `N18` sets `N10` as it’s new predecessor
+6. Node `N7` runs `stabilize` 
+    1. Node `N7` calls node `N18` for it’s predecessor
     2. `N10` is returned
-    3. `N10` is between `N8` and `N16`
-    4. Node `N8` sets `N10` as it’s successor 
+    3. `N10` is between `N7` and `N18`
+    4. Node `N7` sets `N10` as it’s successor 
 
 Here is the Rust implementation of `stabilize` method
 
@@ -548,15 +548,15 @@ impl NodeService {
     // ...
 
     pub fn stabilize(&mut self) -> Result<(), error::ServiceError> {
-        let client: C = self.store.successor.client();
+        let client: C = self.store.successor().client();
         let result = client.predecessor();
         if let Ok(Some(x)) = result {
-            if Node::is_between_on_ring(x.id.clone(), self.id, self.store.successor.id) {
-                self.store.successor = x;
+            if Node::is_between_on_ring(x.id.clone(), self.id, self.store.successor().id) {
+                self.store.set_successor(x);
             }
         }
 
-        let client: C = self.store.successor.client();
+        let client: C = self.store.successor().client();
         client.notify(Node { id: self.id, addr: self.addr })?;
 
         Ok(())
@@ -582,10 +582,10 @@ impl NodeService {
     // ...
 
     pub fn check_predecessor(&mut self) {
-        if let Some(predecessor) = &self.store.predecessor {
-            let client: C = predecessor.client();
+        if let Some(predecessor) = self.store.predecessor() {
+            let client = predecessor.client();
             if let Err(ClientError::ConnectionFailed(_)) = client.ping() {
-                self.store.predecessor = None;
+                self.store.unset_predecessor();
             };
         }
     }
