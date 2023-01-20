@@ -1,6 +1,6 @@
 ---
-title: 'Building a Chord Ring with Rust and gRPC: Part 1'
-description: Step by step guide on how to implement the Chord protocol in Rust using gRPC
+title: 'Building a Chord Ring with Rust'
+description: Step by step guide on how to implement the Chord protocol in Rust
 tags: 'rust,tutorial,programming'
 cover_image: ./images/cover.png
 canonical_url: null
@@ -8,9 +8,7 @@ published: false
 id: 1331035
 ---
 
-Welcome to my attempt at implementing the Chord protocol in Rust. Throughout this blog post, I will be documenting the steps I took to implement the Chord protocol using gRPC and explaining my thought process along the way.
-
-I will mainly focus on Chord itself, there are tons of resources about gRPC out there, so I will not spend too much time covering it.
+Welcome to my attempt at implementing the Chord protocol in Rust. Throughout this blog post, I will be documenting the steps I took to implement the Chord protocol using Rust programming language and explaining my thought process along the way.
 
 All the code can be found in the repo https://github.com/kamilczerw/chord. I made a separate branch for each part of this blog to make it easier to follow along. The part you are reading right now can be found [here](https://github.com/kamilczerw/chord/tree/chord).
 
