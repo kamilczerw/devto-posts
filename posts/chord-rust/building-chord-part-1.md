@@ -580,6 +580,60 @@ The `fix_fingers` method is called periodically to update the finger table. It e
 
 The `next` variable is used to keep track of the next finger to fix. It is incremented after each call to `fix_fingers`. When the `next` variable is greater than the number of fingers in the finger table it is reset to 1. 
 
+We don't have to keep track of the `next` variable in our implementation, because we can just iterate over the finger table. Let's do that.
+
+```rust
+impl NodeService {
+    // ...
+
+    pub fn fix_fingers(&mut self) {
+        for finger in self.store.finger_table.iter_mut() {
+            if let Ok(successor) =  self.find_successor(finger.start) {
+                finger.node = successor;
+            }
+        }
+    }
+}
+```
+
+This looks pretty simple, but unfortunately it won't work. It won't even compile. When we try to compile it we get the following error:
+
+```
+error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as mutable
+   --> libs/chord/src/service/mod.rs:148:37
+    |
+147 |         for finger in self.store.finger_table.iter_mut() {
+    |                       ----------------------------------
+    |                       |
+    |                       mutable borrow occurs here
+    |                       mutable borrow later used here
+148 |             if let Ok(successor) =  self.find_successor(finger.start) {
+    |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ immutable borrow occurs here
+```
+
+The problem is that we are trying to borrow `self` as mutable and immutable at the same time. We can't do that. We can fix it by getting finger ids and iterating over them instead of the finger table.
+
+
+```rust
+impl NodeService {
+    // ...
+
+    pub fn fix_fingers(&mut self) {
+        let keys = self.store.finger_table.iter().map(|f| f.start)
+            .collect::<Vec<u64>>();
+    
+        keys.iter().enumerate().for_each(|(i, key)| {
+            if let Ok(successor) =  self.find_successor(key.clone()) {
+                self.store.finger_table[i].node = successor;
+            }
+        });
+    }
+}
+```
+
+That works, because `self` is released after the keys are collected, so we can call `self.find_successor` without any problems. We can also use `enumerate` to get the index of the finger we are currently fixing. This way we don't have to keep track of the `next` variable.
+
+
 #### Check predecessor
 
 Another task which has to be run periodically is `check_predecessor`.
