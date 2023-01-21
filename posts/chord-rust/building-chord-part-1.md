@@ -161,7 +161,7 @@ impl NodeStore {
     pub fn new(successor: Node) -> Self {
         Self {
             predecessor: None,
-            finger_table: Vec::with_capacity(64),
+            finger_table: Finger::init_finger_table(successor),
         }
     }
 
@@ -171,7 +171,9 @@ impl NodeStore {
 }
 ```
 
-The `predecessor` field contains the information about the node preceding the current node in the Chord ring. We need to store information about `predecessor`, because joining node will need that information and decide if the `predecessor` should be the new `successor` of that node. The `finger_table` field contains information about some of the nodes in the ring for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
+The `predecessor` field contains the information about the node preceding the current node in the Chord ring. We need to store information about `predecessor`, because joining node will need that information to decide if the `predecessor` should be the new `successor` of that node. The `finger_table` field contains information about some of the nodes in the ring for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
+
+When the `finger_table` is created, all the fingers are pointing to the same node, which is the `successor` of the current node. The `init_finger_table` method is used to initialize the finger table.
 
 We also need to define `Finger` struct. It will contain the start identifier from which the node is potentially responsible for, and the node itself.
 
@@ -179,6 +181,34 @@ We also need to define `Finger` struct. It will contain the start identifier fro
 pub(crate) struct Finger {
     start: u64,
     node: Node
+}
+
+impl Finger {
+    pub(crate) fn init_finger_table(node: Node) -> Vec<Self> {
+        let mut fingers = Vec::with_capacity(64);
+
+        // We start at 1 because the calculation of the finger id is based on the index
+        // of the finger. The calculation assumes that the index starts at 1.
+        for i in 1..65 {
+            let finger_id = Self::finger_id(node.id, i);
+            fingers.push(Finger { start: finger_id, node: node.clone() });
+        }
+
+        fingers
+    }
+
+    pub(crate) fn finger_id(node_id: u64, index: u8) -> u64 {
+        if index == 0 {
+            return node_id;
+        }
+
+        let offset: u128 = 2_u128.pow((index - 1) as u32);
+        let power: u128 = 2_u128.pow(64 as u32);
+
+        let id = (node_id as u128 + offset) % power;
+
+        id as u64
+    }
 }
 ```
 
@@ -611,7 +641,7 @@ error[E0502]: cannot borrow `*self` as immutable because it is also borrowed as 
     |                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ immutable borrow occurs here
 ```
 
-The problem is that we are trying to borrow `self` as mutable and immutable at the same time. We can't do that. We can fix it by getting finger ids and iterating over them instead of the finger table.
+The problem is that we are trying to borrow `self` as mutable and immutable at the same time. We can't do that. Maybe the `next` variable is not that bad after all. We will not increment it as described in the paper, we will use for loop.
 
 
 ```rust
@@ -619,19 +649,17 @@ impl NodeService {
     // ...
 
     pub fn fix_fingers(&mut self) {
-        let keys = self.store.finger_table.iter().map(|f| f.start)
-            .collect::<Vec<u64>>();
-    
-        keys.iter().enumerate().for_each(|(i, key)| {
-            if let Ok(successor) =  self.find_successor(key.clone()) {
+        for i in 0..self.store.finger_table.len() {
+            let id = self.id + 2u64.pow(i as u32);
+            if let Ok(successor) =  self.find_successor(id) {
                 self.store.finger_table[i].node = successor;
             }
-        });
+        }
     }
 }
 ```
 
-That works, because `self` is released after the keys are collected, so we can call `self.find_successor` without any problems. We can also use `enumerate` to get the index of the finger we are currently fixing. This way we don't have to keep track of the `next` variable.
+That works, because we don't hold on to `self` when iterating over the fingers, so we can call `self.find_successor` without any problems.
 
 
 #### Check predecessor
