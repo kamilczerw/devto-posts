@@ -1,7 +1,7 @@
 ---
 title: 'Building a Chord Ring with Rust'
 description: Step by step guide on how to implement the Chord protocol in Rust
-tags: 'rust,tutorial,programming'
+tags: 'rust,tutorial,programming,chord'
 cover_image: ./images/cover.png
 canonical_url: null
 published: false
