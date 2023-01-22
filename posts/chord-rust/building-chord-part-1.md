@@ -16,11 +16,11 @@ Before we start coding, let’s get familiar with the protocol itself.
 
 ## What is Chord
 
-The Chord protocol is designed to efficiently locate the node that stores a specific piece of data in a peer-to-peer application. It only performs one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord. That is a project for another time. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the state of each node growing logarithmically as the number of Chord nodes increases.
+Chord is a protocol designed to efficiently locate the node that stores a specific piece of data in a peer-to-peer application. It can be used to implement distributed data storage. It only describes one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord, that is a project for another time. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the size of each node growing logarithmically as the number of Chord nodes increases.
 
 I will try to explain the Chord protocol as much as possible, but for a more comprehensive understanding, I recommended reading the original paper which can be found at the following link: **[https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf](https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf)**. The paper provides in-depth information on the design and implementation of the protocol, as well as the results of theoretical analysis and simulations.
 
-The protocol is designed so that no organization can control the network without owning the majority of the nodes. When a node joins the network it gets an id generated based on its IP address. The id is generated using a Consistent hashing algorithm, to eventually distribute the ids on the Ring and be able to generate an id based on the text key.
+The protocol is designed so that no organization can control the network without owning the majority of the nodes. When a node joins the network it gets an *id* generated based on its IP address. The *id* is generated using a consistent hashing algorithm, to eventually distribute the *ids* on the Ring and be able to generate an *id* based on the text key.
 
 The core principle of the Chord protocol is that nodes do not need to maintain a complete list of all the other nodes in the network. Instead, each node only needs to maintain information about a small number of neighboring nodes in the ring. 
 
@@ -34,7 +34,7 @@ A node responsible for a key `k` is called a `successor` of `k`. In the rest of 
 
 ### Lookup
 
-To find the location of a specific identifier, each node uses a hash function to map the id to a position on the ring. It then uses its finger table, to determine which node is responsible for the id. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
+To find the location of a specific identifier, each node uses a hash function to map the *id* to a position on the ring. It then uses its finger table, to determine which node is responsible for the *id*. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
 
 - Identifier, calculated with the formula 
 {% katex inline %}
@@ -55,9 +55,9 @@ Here is the finger tables for node `N40` from our example network:
 | 5 | 56 | N58 |
 | 6 | 8 | N18 |
 
- As you can see in the example the finger id doesn’t map directly to the node id, it is used as an approximation of the location of an id we are looking for. When a node receives a request to find a specific id, it checks the finger table to see which finger id is closest to the requested id but still lower than it. The node then sends the request to the other node in the network that is responsible for that finger id, as listed in the finger table.
+ As you can see in the example the finger *id* doesn’t map directly to the node *id*, it is used as an approximation of the location of an *id* we are looking for. When a node receives a request to find a specific *id*, it checks the finger table to see which finger *id* is closest to the requested *id* but still lower than it. The node then sends the request to the other node in the network that is responsible for that finger *id*, as listed in the finger table.
 
-Here is a visualization of the process of finding the node responsible for id `20` in our example ring, using a lookup from node `N40`:
+Here is a visualization of the process of finding the node responsible for *id* `20` in our example ring, using a lookup from node `N40`:
 
 ![lookup.png](./images/lookup.png)
 
