@@ -1,7 +1,7 @@
 ---
 title: 'Building a Chord Ring with Rust and gRPC'
 description: Continuation of the guide about building the Chord protocol in Rust, this time with gRPC.
-tags: 'rust,tutorial,programming,grpc,chord'
+tags: 'rust,tutorial,programming,grpc'
 cover_image: ./images/cover.png
 canonical_url: null
 published: false
