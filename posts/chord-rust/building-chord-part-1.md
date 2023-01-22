@@ -30,6 +30,8 @@ Imagine the network as a ring with nodes distributed along it. For demonstration
 
 Each of the nodes is responsible for maintaining a range of keys, starting with the node preceding it and including its own key. For example, in our demo network, node `N7` would be responsible for keys `2-7`. Node `N1` would be responsible for keys `59-63` and `0-1`. This is because the network has a ring shape, and the connection after the last key is the first key.
 
+A node responsible for a key `k` is called a `successor` of `k`. In the rest of this post, I will use the term `successor` to refer to the node responsible for a given key.
+
 ### Lookup
 
 To find the location of a specific identifier, each node uses a hash function to map the id to a position on the ring. It then uses its finger table, to determine which node is responsible for the id. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
@@ -61,8 +63,9 @@ Here is a visualization of the process of finding the node responsible for id `2
 
 ### Joining
 
-When a node joins the Chord ring, it first needs to find its place in the network and notify its immediate `successor` about itself. 
->> Explain what `successor` and `predecessor` is << The successor updates it’s predecessor to the newly joined node, given it’s id is between current predecessor and itself. 
+When a node joins the Chord ring, it first needs to find its place in the network and notify its immediate `successor` about itself. Immediate `successor` is the node that is responsible for the next id after the joining node.
+
+`predecessor` is a node that is previous node in the ring. It is used to maintain the correct relationships between nodes in the network.
 
 The `stabilize` job is responsible for ensuring that each node knows the correct successor and predecessor nodes in the Chord ring. It does this by checking if the current successor node has a predecessor that is closer to the current node than the current successor node itself. If this is the case, the current node updates its successor to the new node. Additionally, the stabilize job also checks if the current predecessor node is still alive by sending a ping message to it. If there is no response, the current node updates its predecessor to the new node.
 
@@ -277,22 +280,24 @@ First function we will implement based on the spec is `find successor`. It is th
 
 Here is the pseudocode from the spec:
 
-```
-// ask node n to find the successor of id
-n.find_successor(id)
-  if (id ∈ (n, successor]) 
-    return successor;
-  else
-    n′ = closest_preceding_node(id); 
-    return n′.find_successor(id);
-
-// search the local table for the highest predecessor of id
-n.closest_preceding_node(id)
-    for i = m downto 1
-        if (finger[i] ∈ (n,id))
-            return finger[i];
-    return n;
-```
+>
+> ```
+> // ask node n to find the successor of id
+> n.find_successor(id)
+>   if (id ∈ (n, successor]) 
+>     return successor;
+>   else
+>     n′ = closest_preceding_node(id); 
+>     return n′.find_successor(id);
+> 
+> // search the local table for the highest predecessor of id
+> n.closest_preceding_node(id)
+>     for i = m downto 1
+>         if (finger[i] ∈ (n,id))
+>             return finger[i];
+>     return n;
+> ```
+>
 
 Let’s break this function down.
 
@@ -300,7 +305,7 @@ Let’s break this function down.
 - If the `id` is between `n` (exclusive) and `successor` (inclusive), return `successor`
 - Otherwise get a node from the finger table, with highest `id` which is lower than the `id` we are looking for. This node is called `closest preceding node`, and we call `find_successor` on it with the `id` we are looking for. That node will repeat the same process until it finds the successor of the `id`.
 
-We need to create a function which will check if an `id` is between 2 nodes on the ring, we can add it to `Node` struct.
+We need to create a function which checks if an `id` is between 2 nodes on the ring, we can add it to `Node` struct.
 
 ```rust
 impl Node {
@@ -700,7 +705,6 @@ If you find this article interesting, or have any comments on how it could be im
 
 ## TODO:
 
-- [ ]  fix all the >> and <<
 - [ ]  Read it again
 - [ ]  read it again
 - [ ]  Add readme to the repo (don’t forget about the `chord` branch)
