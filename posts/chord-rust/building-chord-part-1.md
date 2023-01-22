@@ -20,21 +20,21 @@ Chord is a protocol designed to efficiently locate the node that stores a specif
 
 I will try to explain the Chord protocol as much as possible, but for a more comprehensive understanding, I recommended reading the original paper which can be found at the following link: **[https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf](https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf)**. The paper provides in-depth information on the design and implementation of the protocol, as well as the results of theoretical analysis and simulations.
 
-The protocol is designed so that no organization can control the network without owning the majority of the nodes. When a node joins the network it gets an *id* generated based on its IP address. The *id* is generated using a consistent hashing algorithm, to eventually distribute the *ids* on the Ring and be able to generate an *id* based on the text key.
+The protocol is designed so that no organization can control the network without owning the majority of the nodes. When a node joins the network it gets an *id* generated based on its IP address. The *id* is generated using a consistent hashing algorithm, to eventually distribute the *ids* on the *Ring* and be able to generate an *id* based on the text key.
 
-The core principle of the Chord protocol is that nodes do not need to maintain a complete list of all the other nodes in the network. Instead, each node only needs to maintain information about a small number of neighboring nodes in the ring. 
+The core principle of the Chord protocol is that nodes do not need to maintain a complete list of all the other nodes in the network. Instead, each node only needs to maintain information about a small number of neighboring nodes in the *ring*. 
 
-Imagine the network as a ring with nodes distributed along it. For demonstration, let’s consider a ring with 10 nodes that can only handle 64 unique identifiers. This ring structure allows efficient routing of messages and ensures that each node only needs to maintain information about a small number of nodes to efficiently route messages and find the correct destination node. 
+Imagine the network as a *ring* with nodes distributed along it. For demonstration, let’s consider a *ring* with 10 nodes that can only handle 64 unique identifiers. This *ring* structure allows efficient routing of messages and ensures that each node only needs to maintain information about a small number of nodes to efficiently route messages and find the correct destination node. 
 
 ![Chord ring](./images/ring-1.png)
 
-Each of the nodes is responsible for maintaining a range of keys, starting with the node preceding it and including its own key. For example, in our demo network, node `N7` would be responsible for keys `2-7`. Node `N1` would be responsible for keys `59-63` and `0-1`. This is because the network has a ring shape, and the connection after the last key is the first key.
+Each of the nodes is responsible for maintaining a range of keys, starting with the node preceding it and including its own key. For example, in our demo network, node `N7` would be responsible for keys `2-7`. Node `N1` would be responsible for keys `59-63` and `0-1`. This is because the network has a *ring* shape, and the connection after the last key is the first key.
 
 A node responsible for a key `k` is called a `successor` of `k`. In the rest of this post, I will use the term `successor` to refer to the node responsible for a given key.
 
 ### Lookup
 
-To find the location of a specific identifier, each node uses a hash function to map the *id* to a position on the ring. It then uses its finger table, to determine which node is responsible for the *id*. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
+To find the location of a specific identifier, each node uses a hash function to map the *id* to a position on the *ring*. It then uses its finger table, to determine which node is responsible for the *id*. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
 
 - Identifier, calculated with the formula 
 {% katex inline %}
@@ -57,19 +57,19 @@ Here is the finger tables for node `N40` from our example network:
 
  As you can see in the example the finger *id* doesn’t map directly to the node *id*, it is used as an approximation of the location of an *id* we are looking for. When a node receives a request to find a specific *id*, it checks the finger table to see which finger *id* is closest to the requested *id* but still lower than it. The node then sends the request to the other node in the network that is responsible for that finger *id*, as listed in the finger table.
 
-Here is a visualization of the process of finding the node responsible for *id* `20` in our example ring, using a lookup from node `N40`:
+Here is a visualization of the process of finding the node responsible for *id* `20` in our example *ring*, using a lookup from node `N40`:
 
 ![lookup.png](./images/lookup.png)
 
 ### Joining
 
-When a node joins the Chord ring, it first needs to find its place in the network and notify its immediate `successor` about itself. Immediate `successor` is the node that is responsible for the next id after the joining node.
+When a node joins the *Chord ring*, it first needs to find its place in the network and notify its immediate `successor` about itself. Immediate `successor` is the node that is responsible for the next id after the joining node.
 
-`predecessor` is a node that is previous node in the ring. It is used to maintain the correct relationships between nodes in the network.
+`predecessor` is a node that is previous node in the *ring*. It is used to maintain the correct relationships between nodes in the network.
 
-The `stabilize` job is responsible for ensuring that each node knows the correct successor and predecessor nodes in the Chord ring. It does this by checking if the current successor node has a predecessor that is closer to the current node than the current successor node itself. If this is the case, the current node updates its successor to the new node. Additionally, the stabilize job also checks if the current predecessor node is still alive by sending a ping message to it. If there is no response, the current node updates its predecessor to the new node.
+The `stabilize` job is responsible for ensuring that each node knows the correct successor and predecessor nodes in the *Chord ring*. It does this by checking if the current successor node has a predecessor that is closer to the current node than the current successor node itself. If this is the case, the current node updates its successor to the new node. Additionally, the stabilize job also checks if the current predecessor node is still alive by sending a ping message to it. If there is no response, the current node updates its predecessor to the new node.
 
-In summary, the `stabilize` job is responsible for maintaining the correct relationships between nodes in the Chord ring and ensuring that the network is in sync.
+In summary, the `stabilize` job is responsible for maintaining the correct relationships between nodes in the *Chord ring* and ensuring that the network is in sync.
 
 ### Consistent hashing
 
@@ -152,7 +152,7 @@ impl Node {
 
 Then `new` method only takes and address and creates a new node with a unique identifier. The identifier is created by hashing the address using `seahash` hash function. We don't need to expose the `id` field, so the user doesn't have to worry about generating it manually.
 
-Next, let's create `NodeStore` struct. It will contain all the necessary information required to effectively communicate with other nodes in the ring.
+Next, let's create `NodeStore` struct. It will contain all the necessary information required to effectively communicate with other nodes in the *ring*.
 
 ```rust
 pub struct NodeStore {
@@ -174,7 +174,7 @@ impl NodeStore {
 }
 ```
 
-The `predecessor` field contains the information about the node preceding the current node in the Chord ring. We need to store information about `predecessor`, because joining node will need that information to decide if the `predecessor` should be the new `successor` of that node. The `finger_table` field contains information about some of the nodes in the ring for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
+The `predecessor` field contains the information about the node preceding the current node in the *Chord ring*. We need to store information about `predecessor`, because joining node will need that information to decide if the `predecessor` should be the new `successor` of that node. The `finger_table` field contains information about some of the nodes in the *ring* for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
 
 When the `finger_table` is created, all the fingers are pointing to the same node, which is the `successor` of the current node. The `init_finger_table` method is used to initialize the finger table.
 
@@ -276,7 +276,7 @@ impl NodeService {
 
 #### Find successor
 
-First function we will implement based on the spec is `find successor`. It is the entry point for key lookup in the ring. For a given key it returns a node which is responsible for that key. Such node is called successor of the key. Find successor was covered in the [lookup chapter](#lookup).
+First function we will implement based on the spec is `find successor`. It is the entry point for key lookup in the *ring*. For a given key it returns a node which is responsible for that key. Such node is called successor of the key. Find successor was covered in the [lookup chapter](#lookup).
 
 Here is the pseudocode from the spec:
 
@@ -305,7 +305,7 @@ Let’s break this function down.
 - If the `id` is between `n` (exclusive) and `successor` (inclusive), return `successor`
 - Otherwise get a node from the finger table, with highest `id` which is lower than the `id` we are looking for. This node is called `closest preceding node`, and we call `find_successor` on it with the `id` we are looking for. That node will repeat the same process until it finds the successor of the `id`.
 
-We need to create a function which checks if an `id` is between 2 nodes on the ring, we can add it to `Node` struct.
+We need to create a function which checks if an `id` is between 2 nodes on the *ring*, we can add it to `Node` struct.
 
 ```rust
 impl Node {
@@ -494,7 +494,7 @@ We don’t need to implement `create` because we already set the `successor` to 
 
 The `join` method calls the node `n'` to find a successor of id `n`. To explain this, we can use our example from above. 
 
-There is a node with id `N10` and it wants to join the ring. The node `N10` knows about `N1`, so it calls `N1.find_successor(N10)`. Node `N1` responds with `N18`, so `N18` should be the node which is the successor of node `N10`.
+There is a node with id `N10` and it wants to join the *ring*. The node `N10` knows about `N1`, so it calls `N1.find_successor(N10)`. Node `N1` responds with `N18`, so `N18` should be the node which is the successor of node `N10`.
 
 Here is the rust implementation of `join` function
 
@@ -557,9 +557,9 @@ Another one is done.
 > ```
 > 
 
-The `stabilize` method should run periodically, to update the node’s successor when a new node joins the ring. It does it by asking for a predecessor of it’s successor. When the returned node (we will call it `x`) is between node `n` and successor of `n` then the new successor of `n` is set to `x`. 
+The `stabilize` method should run periodically, to update the node’s successor when a new node joins the *ring*. It does it by asking for a predecessor of it’s successor. When the returned node (we will call it `x`) is between node `n` and successor of `n` then the new successor of `n` is set to `x`. 
 
-We can explain it on our example ring. Here are the steps taken when the node `N10` joins the ring:
+We can explain it on our example *ring*. Here are the steps taken when the node `N10` joins the ring:
 
 1. Node `N10` sets `N18` as it’s successor (it's done by `join` method)
 2. Node `N10` runs `stabilize`
