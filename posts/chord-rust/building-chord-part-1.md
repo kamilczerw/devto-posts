@@ -98,12 +98,10 @@ root/
   server/
   libs/
     chord/
-    grpc/
 ```
 
-- `server` will contain all the code related to run the server with grpc
+- `server` will contain all the code related to run the server
 - `libs/chord` will contain all the code related to chord node implementation
-- `libs/grpc` will contain gRPC implementation of the `.proto` file
 
 First, create a `Cargo.toml` file in the root directory of the project.
 
@@ -125,14 +123,13 @@ Now we can create modules for our Chord project by executing the following comma
 ```bash
 cargo new server
 cargo new libs/chord --lib
-cargo new libs/grpc --lib
 ```
 
 ### Chord module
 
 As mentioned earlier, this module will contain all the code specific for the Chord protocol. 
 
-We will start by creating `Node` struct. It will contain the node identifier and IP address (along with the port).
+We will start by creating `Node` struct. It will contain the node identifier and IP address along with the port.
 
 ```rust
 use std::net::SocketAddr;
@@ -151,7 +148,7 @@ impl Node {
 }
 ```
 
-Then `new` method only takes and address and creates a new node with a unique identifier. The identifier is created by hashing the address using `seahash` hash function. We don't need to expose the `id` field, so the user doesn't have to worry about generating it manually.
+Then `new` method only takes an address and creates an instance of `Node` with a unique identifier. The identifier is created by hashing the address using `seahash` hash function. We don't need to expose the `id` field, so the user doesn't have to worry about generating it manually.
 
 Next, let's create `NodeStore` struct. It will contain all the necessary information required to effectively communicate with other nodes in the *ring*.
 
@@ -175,11 +172,11 @@ impl NodeStore {
 }
 ```
 
-The `predecessor` field contains the information about the node preceding the current node in the *Chord ring*. We need to store information about `predecessor`, because joining node will need that information to decide if the `predecessor` should be the new `successor` of that node. The `finger_table` field contains information about some of the nodes in the *ring* for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
+The `predecessor` field contains information about the node preceding the current node in the *Chord ring*. Whe need to store this information to keep the *ring* in sync. When a node runs a `stabilize` job, it checks if it still is the `predecessor` of its `successor`. If it is not, it updates the *finger table* to include the new node. The `finger_table` field contains information about some of the nodes in the *ring* for easier lookup. We also have a `successor` method that returns the first node in the finger table, which is the immediate `successor` of the current node.
 
-When the `finger_table` is created, all the fingers are pointing to the same node, which is the `successor` of the current node. The `init_finger_table` method is used to initialize the finger table.
+When the `finger_table` is created, all the fingers are pointing to the same node, which is the immediate `successor` of the current node. The `init_finger_table` method is used to initialize the finger table.
 
-We also need to define `Finger` struct. It will contain the start identifier from which the node is potentially responsible for, and the node itself.
+Let's create the `Finger` struct and implement some methods. The struct will contain `node` and a `start` field which is a starting *id* from which the node is potentially responsible for.
 
 ```rust
 pub(crate) struct Finger {
