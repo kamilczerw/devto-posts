@@ -695,15 +695,6 @@ impl NodeService {
 
 ## Conclusion
 
-This blog post has become a bit bigger than what I anticipated. In the next post we will go through the RPC implementation, which will finally let us run the code. I tried to cover all the code with tests, but I decided not to include them in this post. You can take a look at the repo and see the tests. [https://github.com/kamilczerw/chord/tree/chord](https://github.com/kamilczerw/chord/tree/chord)
+This blog post has become a bit bigger than what I anticipated. In the next post we will go through the RPC implementation, which will finally let us run the code. I tried to cover all the code with tests, but I decided not to include them in this post. You can take a look at the repo and see the tests there. [https://github.com/kamilczerw/chord/tree/chord](https://github.com/kamilczerw/chord/tree/chord)
 
 If you find this article interesting, or have any comments on how it could be improved, I would love to hear it. Feel free to open an issue in the [repo](https://github.com/kamilczerw/chord/issues/new). You can also reach me on matrix [@ka:potatis.co](https://matrix.to/#/@ka:potatis.co).
-
-
-
-## TODO:
-
-- [ ]  Read it again
-- [ ]  read it again
-- [ ]  Add readme to the repo (don’t forget about the `chord` branch)
-- [ ]  post it on [dev.to](http://dev.to) or [hashnode.com](http://hashnode.com)
