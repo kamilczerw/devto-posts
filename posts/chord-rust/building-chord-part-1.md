@@ -33,7 +33,7 @@ In real-world applications, we would prefer to use string representation of *ids
 
 ### Lookup
 
-To find the location of a *key*, each node uses a hash function to map the *id* to a position on the *ring*. It then uses its finger table, to determine which node is responsible for the *id*. The finger table is a data structure that helps the node quickly locate other nodes in the network. The finger table is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the finger table contains 
+To find the location of a *key*, each node uses a hash function to map the *id* to a position on the *ring*. It then uses so called *finger table*, to determine which node is responsible for the *id*. The *finger table* is a data structure that helps the node quickly locate other nodes in the network. The *finger table* is a table of size `m` (where `m` is the number of bits in the identifier space, in our example, it’s `6`). Each entry in the *finger table* contains 
 
 - Identifier, calculated with the formula 
 {% katex inline %}
@@ -41,7 +41,7 @@ To find the location of a *key*, each node uses a hash function to map the *id* 
 {% endkatex %}
 - Node communication information, which includes IP address and port
 
-Here is the finger tables for node `N40` from our example network:
+Here is the *finger tables* for node `N40` from our example network:
 
 ![fingers.png](./images/fingers.png)
 
@@ -176,7 +176,7 @@ The `predecessor` field contains information about the node preceding the curren
 
 When the `finger_table` is created, all the fingers are pointing to the same node, which is the immediate `successor` of the current node. The `init_finger_table` method is used to initialize the finger table.
 
-Let's create the `Finger` struct and implement some methods. The struct will contain `node` and a `start` field which is a starting *id* from which the node is potentially responsible for.
+Let's create the `Finger` struct and implement some methods. The struct will have `start` field, which is a starting *id* from which the node is potentially responsible for. It will also have the `node` field.
 
 ```rust
 pub(crate) struct Finger {
@@ -213,9 +213,9 @@ impl Finger {
 }
 ```
 
-To be able to communicate with other nodes we need a client. Since the modules are split, we would prefer not to have a dependency on grpc module to make it possible to use `chord` module with other rpc protocols.
+To be able to communicate with other nodes we need a client. We haven't chosen a specific protocol yet, so we will create a trait that will be implemented by the client for the specific protocol.
 
-In order to make it possible, let’s define a Client trait
+Here is the code for the trait:
 
 ```rust
 use crate::Node;
@@ -235,7 +235,7 @@ pub enum ClientError {
 }
 ```
 
-If we try to build the project now we will get an error. That’s because we use `seahash` to generate id for our node.
+If we try to build the project now we will get an error. That’s because we haven't added `seahash` crate, which is used to generate *id* for our node.
 
 Go ahead and add the dependency to `libs/chord/Cargo.toml`
 
@@ -274,7 +274,7 @@ impl NodeService {
 
 #### Find successor
 
-First function we will implement based on the spec is `find successor`. It is the entry point for key lookup in the *ring*. For a given key it returns a node which is responsible for that key. Such node is called successor of the key. Find successor was covered in the [lookup chapter](#lookup).
+First function we will implement based on the spec is *find successor*. It is the entry point for key lookup in the *ring*. For a given key it returns a node which is responsible for that key. Such node is called successor of the key. Find successor was covered in the [lookup chapter](#lookup).
 
 Here is the pseudocode from the spec:
 
@@ -301,7 +301,7 @@ Let’s break this function down.
 
 - The request comes to the node `n` to find the key `id`
 - If the `id` is between `n` (exclusive) and `successor` (inclusive), return `successor`
-- Otherwise get a node from the finger table, with highest `id` which is lower than the `id` we are looking for. This node is called `closest preceding node`, and we call `find_successor` on it with the `id` we are looking for. That node will repeat the same process until it finds the successor of the `id`.
+- Otherwise get a node from the finger table, with highest `id` which is lower than the `id` we are looking for. This node is called `closest preceding node`, and we call `find_successor` on this node with the `id` we are looking for. That node will repeat the same process until it finds the successor of the `id`.
 
 We need to create a function which checks if an `id` is between 2 nodes on the *ring*, we can add it to `Node` struct.
 
@@ -358,7 +358,7 @@ impl NodeService {
 }
 ```
 
-We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id` in our finger table. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix that.
+We check if the `id` is between the current node and the successor. If it is, we return the successor. Otherwise we call `closest_preceding_node` to get the node which is the most immediate predecessor of the `id` in our finger table. We need to call `find_successor` on that node, but we don't have a client to do that. We should fix it.
 
 We can add a `client` method to `Node` struct.
 
@@ -400,7 +400,7 @@ cargo build
 
 ```
 
-Another error 😠
+Oh noes, we get an error 😠
 
 ```
 error[E0282]: type annotations needed
@@ -455,7 +455,7 @@ error[E0392]: parameter `C` is never used
 
 😡 Why is it failing? We clearly use `C` in our code. 
 
-If you look closer at the error, you will see that the `C` type is not used in the `struct`. To fix it, we need to add `std::marker::PhantomData`, it tells the compiler that your type acts as it stores a value of type `C`, even though it doesn’t really. The `struct` should look like this:
+If you look closer at the error, you will see that the `C` type is not used in the `struct`. To fix it, we need to add `std::marker::PhantomData`. It tells the compiler that your type acts as it stores a value of type `C`, even though it doesn’t really. The `struct` should look like this:
 
 ```rust
 pub struct NodeService<C: Client> {
@@ -488,7 +488,7 @@ Next function we will implement is `join`. Let’s take a look at the paper to s
 > ```
 > 
 
-We don’t need to implement `create` because we already set the `successor` to itself when creating a `NodeService`.
+We don’t need to implement `create` because we already set the `successor` to itself when creating the `NodeService`.
 
 The `join` method calls the node `n'` to find a successor of id `n`. To explain this, we can use our example from above. 
 
@@ -523,7 +523,7 @@ n.notify(n')
     predecessor = n';
 ```
 
-Our node `N18` receives a notify request from `N10`, that it might be `N18`'s new predecessor. Node `N18` has to check if `N10` is between its own predecessor (`N7`) and itself. If no other node joined in the meantime the node `N10` will be set as a predecessor of node `N18`.
+Our node `N18` receives a notify request from `N10`, that it might be `N18`'s new predecessor. Node `N18` needs to check if `N10` is between its own predecessor (`N7`) and itself. If no other node joined in the meantime the node `N10` will be set as a predecessor of node `N18`.
 
 ```rust
 impl NodeService {
@@ -609,11 +609,11 @@ impl NodeService {
 >   finger[next] = find_successor(n + 2^next−1);
 > ```
 
-The `fix_fingers` method is called periodically to update the finger table. It ensures that all the finger table entries are correct. It is also used to initialize the finger table of a newly joined node.
+The `fix_fingers` method is called periodically to update the *finger table*. It ensures that all the *finger table* entries are correct. It is also used to initialize the *finger table* of a newly joined *node*.
 
-The `next` variable is used to keep track of the next finger to fix. It is incremented after each call to `fix_fingers`. When the `next` variable is greater than the number of fingers in the finger table it is reset to 1. 
+The `next` variable is used to keep track of the next finger to fix. It is incremented after each call to `fix_fingers`. When the `next` variable is greater than the number of fingers in the *finger table* it is reset to 1. 
 
-We don't have to keep track of the `next` variable in our implementation, because we can just iterate over the finger table. Let's do that.
+We don't have to keep track of the `next` variable in our implementation, because we can just iterate over the *finger table*. Let's do that.
 
 ```rust
 impl NodeService {
