@@ -9,7 +9,7 @@ id: 1331035
 ---
 Chord is a protocol for building decentralized data storage systems. It is used to efficiently locate the node that stores a specific piece of data in a network of nodes. It only describes one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the size of each node growing logarithmically as the number of Chord nodes increases.
 
-In this blog post, I will be documenting the steps I took to implement the Chord protocol using Rust programming language and explaining my thought process along the way. All the code can be found in the repo https://github.com/kamilczerw/chord. I made a separate branch for each part of this blog to make it easier to follow along. The part you are reading right now can be found [here](https://github.com/kamilczerw/chord/tree/chord).
+In this blog post, I will be documenting the steps I took to implement the Chord protocol using Rust programming language and explaining my thought process along the way. All the code can be found in the repo https://github.com/kamilczerw/chord. I created a branch for this post, so you can follow along with the code. You can find the code for this post [here](https://github.com/kamilczerw/chord/tree/chord).
 
 I encorage you to read the original paper which describes Chord protocol in more comprehensive way. You can find it [here](https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf).
 
@@ -695,6 +695,6 @@ impl NodeService {
 
 ## Conclusion
 
-This blog post has become a bit bigger than what I anticipated. In the next post we will go through the RPC implementation, which will finally let us run the code. I tried to cover all the code with tests, but I decided not to include them in this post. You can take a look at the repo and see the tests there. [https://github.com/kamilczerw/chord/tree/chord](https://github.com/kamilczerw/chord/tree/chord)
+This blog post has become a bit bigger than what I anticipated. I tried to cover all the code with tests, but I decided not to include them in this post. You can take a look at the repo and see the tests there. [https://github.com/kamilczerw/chord/tree/chord](https://github.com/kamilczerw/chord/tree/chord).
 
-If you find this article interesting, or have any comments on how it could be improved, I would love to hear it. Feel free to open an issue in the [repo](https://github.com/kamilczerw/chord/issues/new). You can also reach me on matrix [@ka:potatis.co](https://matrix.to/#/@ka:potatis.co).
+I plan to write a follow-up post where I will go through the RPC implementation. I will also write a post about how to run the code. I hope you enjoyed reading it. If you have any questions or comments, feel free to open an issue in the [repo](https://github.com/kamilczerw/chord/issues/new) or reach out to me on [matrix](https://matrix.to/#/@ka:potatis.co).
