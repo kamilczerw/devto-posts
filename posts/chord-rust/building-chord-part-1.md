@@ -4,7 +4,7 @@ description: Step by step guide on how to implement the Chord protocol in Rust
 tags: 'rust,tutorial,programming,chord'
 cover_image: ./images/cover.png
 canonical_url: null
-published: false
+published: true
 id: 1331035
 ---
 Chord is a protocol for building decentralized data storage systems. It is used to efficiently locate the node that stores a specific piece of data in a network of nodes. It only describes one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the size of each node growing logarithmically as the number of Chord nodes increases.
