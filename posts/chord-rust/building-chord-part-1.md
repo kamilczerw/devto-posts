@@ -9,7 +9,7 @@ id: 1331035
 ---
 Chord is a protocol for building decentralized data storage systems. It is used to efficiently locate the node that stores a specific piece of data in a network of nodes. It only describes one operation: given a key, it maps the key to the responsible node. By linking a key to each data item and storing the key-value pair at the corresponding node, data location can be easily implemented using Chord. Additionally, Chord can adapt and respond to queries even when nodes are constantly joining or leaving the system. Theoretical analysis and simulations demonstrate that Chord is scalable, with communication costs and the size of each node growing logarithmically as the number of Chord nodes increases.
 
-In this blog post, I will be documenting the steps I took to implement the Chord protocol using Rust programming language and explaining my thought process along the way. All the code can be found in the repo https://github.com/kamilczerw/chord. I created a branch for this post, so you can follow along with the code. You can find the code for this post [here](https://github.com/kamilczerw/chord/tree/chord).
+In this blog post, I will be documenting the steps I took to implement the Chord protocol using Rust programming language and explaining my thought process along the way. All the code can be found in the repo https://github.com/kamilczerw/chord. I created a branch for this post, so you can follow along with the code, which you can find [here](https://github.com/kamilczerw/chord/tree/chord).
 
 I encorage you to read the original paper which describes Chord protocol in more comprehensive way. You can find it [here](https://pdos.csail.mit.edu/papers/ton:chord/paper-ton.pdf).
 
@@ -54,7 +54,7 @@ Here is the *finger tables* for node `N40` from our example network:
 | 5 | 56 | N58 |
 | 6 | 8 | N18 |
 
- As you can see in the example the *finger id* doesn’t map directly to the node *id*, it is used as an approximation of the location of an *id* we are looking for. When a node receives a request to find a specific *id*, it checks the finger table to see which *finger id* is closest to the requested *id* but still lower than the *finger id*. The node then forwards the request to the node returned from the *finger table*. The node that receives the request then repeats the process until it finds the node responsible for the *id*.
+ As you can see in the example the *finger id* doesn’t map directly to the *node id*, it is used as an approximation of the location of an *id* we are looking for. When a node receives a request to find a specific *id*, it checks the finger table to see which *finger id* is closest to the requested *id* but still lower than the *finger id*. The node then forwards the request to the node returned from the *finger table*. The node that receives the request then repeats the process until it finds the node responsible for the *id*.
 
 Here is a visualization of the process of finding the node responsible for *id* `20` in our example *ring*, using a lookup from node `N40`:
 
@@ -64,11 +64,11 @@ Here is a visualization of the process of finding the node responsible for *id* 
 
 When a node joins the *Chord ring*, it first needs to find its place in the network. It calculates its *id* by hashing its IP address and then uses the lookup operation to find the the `successor` of the *id*. Immediate `successor` is the node that is responsible for the next id after the *id* of the joining node.
 
-Once the node has found its `successor`, it sends a `notify` message to the `successor` node. The `notify` message contains the *id* and communication information of the joining node. The `successor` node then checks if the joining node is a better `predecessor` than its current `predecessor`. If the joining node is a better `predecessor`, the `successor` node updates its `predecessor` to the joining node.
+Once the node has found its `successor`, it sends a `notify` request to the `successor` node. The `notify` message contains the *id* and communication information of the joining node. The `successor` node then checks if the joining node is a better `predecessor` than its current `predecessor`. If the joining node is a better `predecessor`, the `successor` node updates its `predecessor` to the joining node.
 
 `predecessor` is a node that is previous node in the *ring*. It is used to maintain the correct relationships between nodes in the network.
 
-Each node runs a `stabilize` job periodically. The `stabilize` job is responsible for ensuring that each node knows the correct successor and predecessor nodes in the *Chord ring*. It does this by checking if the current successor node has a predecessor that is closer to the current node than the current successor node itself. If this is the case, the current node updates its successor to the new node. Additionally, the stabilize job also checks if the current predecessor node is still alive by sending a ping message to it. If there is no response, the current node updates its predecessor to the new node.
+Each node runs a `stabilize` job periodically. The `stabilize` job is responsible for ensuring that each node knows the correct successor and predecessor nodes in the *Chord ring*. It does this by checking if the current successor node has a predecessor that is closer to the current node than the current successor node. If this is the case, the current node updates its successor to the new node. Additionally, the stabilize job also checks if the current predecessor node is still alive by sending a ping message to it. If there is no response, the current node updates its predecessor to the new node.
 
 In summary, the `stabilize` job is responsible for maintaining the correct relationships between nodes in the *Chord ring* and ensuring that the network is in sync.
 
